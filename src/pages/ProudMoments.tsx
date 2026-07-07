@@ -1,8 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring, useMotionTemplate  } from 'framer-motion';
-import type { Variants } from "framer-motion";
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring, useMotionTemplate, useReducedMotion, useMotionValueEvent  } from 'framer-motion';
+import type { MotionValue, Variants } from "framer-motion";
 import { SEO, type OpenGraphData, type TwitterCardData } from "../components/SEO";
 import { proudMomentsPageStructuredData } from "../components/structured-data";
+
+interface SvgProps {
+  accent: string;
+}
+
+type VisualComponent = React.FC<SvgProps>;
+
+
+export interface VisualComponentProps {
+  accent?: string;
+}
+
+interface StorytellingSectionProps {
+  CHAPTERS: Chapter[];
+  VISUALS: VisualComponent[];
+  activeIndex: number;
+  sectionRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
+}
 
 const proudMomentsOpenGraph: OpenGraphData = {
   type: "website",
@@ -28,16 +46,6 @@ const proudMomentsTwitterCard: TwitterCardData = {
   imageAlt: "Proud Moments by Digital Graphics - Trophy and Award Design Showcase",
   site: "@digitalgraphics",
 };
-
-
-
-interface Chapter {
-  id: string;
-  title: string;
-  desc: string;
-  intro?: string;
-  accent: string;
-}
 
 interface SvgProps {
   accent: string;
@@ -318,7 +326,7 @@ function AwardsHero() {
         </motion.div>
 
         {/* Poster Headline - Increased base mobile text from 4xl to 5xl */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-medium tracking-tight text-neutral-900 dark:text-white leading-[1.1] mb-6 md:mb-8 w-full flex flex-col items-center">
+        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-medium tracking-tight text-neutral-900 dark:text-white leading-[1.1] mb-5 md:mb-7 w-full flex flex-col items-center">
           <motion.span variants={BLUR_REVEAL} initial="initial" animate="animate" className="block w-full">
             Celebrating
           </motion.span>
@@ -328,8 +336,11 @@ function AwardsHero() {
             <AnimatePresence>
               <motion.span
                 key={WORDS[currentWordIndex]}
-                className="absolute text-blue-600 dark:text-[#2563EB] italic font-serif lowercase text-center w-full px-2"
-                initial={{ y: "40%", opacity: 0, filter: "blur(4px)" }}
+className="absolute italic font-serif lowercase text-center pr-[0.15em] pl-[0.05em] text-transparent bg-clip-text 
+                           bg-[linear-gradient(110deg,#7A5C22_0%,#997A36_35%,#D1BA84_50%,#997A36_65%,#7A5C22_100%)] 
+                           dark:bg-[linear-gradient(110deg,#C99C47_0%,#E9D39B_35%,#FFF6DE_50%,#D8B86D_65%,#8F6B24_100%)] 
+                           will-change-transform"
+                                           initial={{ y: "40%", opacity: 0, filter: "blur(4px)" }}
                 animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
                 exit={{ y: "-40%", opacity: 0, filter: "blur(4px)" }}
                 transition={{ 
@@ -369,11 +380,66 @@ function AwardsHero() {
 }
 
 const CHAPTERS: Chapter[] = [
-  { id: "01", title: "Custom Trophy Design", desc: "Unique, theme-based trophy designs tailored to your event. Crafted with precision using premium materials, engraving, and storytelling-driven aesthetics.",accent: "#FFB800" },
-  { id: "02", title: "Elegant Crystal Awards", desc: "Sophisticated crystal awards designed with clarity and light refraction in mind. Perfect for high-prestige recognition moments.", accent: "#00E5FF" },
-  { id: "03", title: "Bespoke Medals", desc: "Custom medals in gold, silver, and bronze finishes. Ideal for sports, academic excellence, and institutional recognition.", accent: "#FF3366" },
-  { id: "04", title: "Commemorative Mementos", desc: "Minimal, elegant keepsakes designed to preserve meaningful milestones and corporate achievements.", accent: "#00FF66" },
-  { id: "05", title: "Corporate Gifting", desc: "Premium personalized gifting solutions designed to strengthen business relationships and long-term brand value.", accent: "#7B61FF" }
+  {
+    id: "01",
+    title: "Custom Trophy Design",
+    desc: "Unique designs tailored to your event theme — materials, shapes, and engravings that tell a story.",
+    accent: "#FFB800",
+    points: [
+      "100% Custom Shapes & Concepts",
+      "Premium Acrylic, Metal & Wood Finishes",
+      "Precision Laser Engraving",
+      "Brand & Event Personalization"
+    ]
+  },
+  {
+    id: "02",
+    title: "Elegant Crystal Awards",
+    desc: "Elegant and timeless — wood, crystal, or metal awards personalized with your branding and message.",
+    accent: "#00E5FF",
+    points: [
+      "Ultra-Clear Premium Crystal",
+      "Deep Laser Engraved Detailing",
+      "Luxury Presentation Boxes",
+      "Executive & Corporate Collections"
+    ]
+  },
+  {
+    id: "03",
+    title: "Bespoke Medals",
+    desc: "Perfect for sports, academics, and more. Fully custom options in gold, silver, and bronze.",
+    accent: "#FF3366",
+    points: [
+      "Custom Die-Cast Medal Designs",
+      "Gold, Silver & Bronze Finishes",
+      "Premium Ribbon Customization",
+      "Sports, Schools & Institutions"
+    ]
+  },
+  {
+    id: "04",
+    title: "Commemorative Mementos",
+    desc: "Elegant keepsakes that serve as memorable tokens of appreciation or participation.",
+    accent: "#00FF66",
+    points: [
+      "Minimal Contemporary Designs",
+      "Premium Engraving & Etching",
+      "Corporate & Personal Milestones",
+      "Long-Lasting Quality Materials"
+    ]
+  },
+  {
+    id: "05",
+    title: "Corporate Gifting",
+    desc: "Build strong business relationships with personalized, premium corporate gifting solutions.",
+    accent: "#7B61FF",
+    points: [
+      "Premium Executive Gift Sets",
+      "Complete Brand Customization",
+      "Luxury Packaging Experience",
+      "Bulk Orders with Consistent Quality"
+    ]
+  }
 ];
 
 const SvgDesign: React.FC<SvgProps> = ({ accent }) => (   <svg viewBox="0 0 400 400" className="w-full h-full max-w-[280px] md:max-w-[380px] text-neutral-900 dark:text-white" fill="none">     {/* Background Floating UI Elements */}     <motion.g animate={{ y: [-6, 6, -6] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>       {/* Solid UI Card */}       <rect x="230" y="50" width="110" height="70" rx="12" fill="currentColor" opacity="0.05" />       <rect x="230" y="50" width="110" height="70" rx="12" stroke="currentColor" strokeWidth="3" />       <line x1="250" y1="75" x2="280" y2="75" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />       <line x1="250" y1="95" x2="310" y2="95" stroke={accent} strokeWidth="3" strokeLinecap="round" />       <circle cx="315" cy="75" r="8" fill="currentColor" />     </motion.g>     <motion.g animate={{ y: [4, -4, 4] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>       <circle cx="80" cy="100" r="16" stroke={accent} strokeWidth="3" />       <path d="M 60 80 L 70 90 M 100 80 L 90 90" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />     </motion.g>     {/* Sleek Desk & Monitor */}     <path d="M 40 320 L 360 320" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />     <path d="M 90 320 L 130 250 M 190 320 L 150 250" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />     <rect x="70" y="120" width="160" height="110" rx="8" stroke="currentColor" strokeWidth="3" />     <path d="M 70 200 L 230 200" stroke="currentColor" strokeWidth="2" />         {/* Abstract Trophy on Screen */}     <path d="M 120 150 L 180 150 L 165 180 L 135 180 Z" stroke={accent} strokeWidth="3" strokeLinejoin="round" />     <line x1="150" y1="180" x2="150" y2="195" stroke={accent} strokeWidth="3" strokeLinecap="round" />     {/* Modern Character Design (Soft rounded features, bold strokes) */}     <g stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">       <circle cx="280" cy="170" r="22" />       {/* Top knot/Hair detail */}       <circle cx="305" cy="150" r="8" fill="currentColor" />       <path d="M 240 320 C 240 240, 260 220, 280 220 C 300 220, 320 240, 320 320" />       {/* Dynamic Arm reaching to stylus */}       <path d="M 270 240 C 240 260, 210 270, 180 280" />     </g>         {/* Stylus/Pen */}     <line x1="150" y1="290" x2="185" y2="278" stroke={accent} strokeWidth="4" strokeLinecap="round" />   </svg> );
@@ -910,6 +976,396 @@ const WhyChooseUs: React.FC<WhyChooseUsProps> = ({ accent = "currentColor" }) =>
   );
 };
 
+
+export interface Chapter {
+  id: string | number;
+  title: string;
+  desc: string;
+  intro?: string;
+  accent: string;
+  points?: string[];
+}
+ 
+export type VisualComponentType = React.ComponentType<{ accent: string }>;
+ 
+
+interface MobileCardProps {
+  chapter: Chapter;
+  index: number;
+  total: number;
+  stageProgress: MotionValue<number>;
+  visual: VisualComponentType;
+  reducedMotion: boolean;
+}
+
+
+const SEGMENT_VH = 68;
+const HOLD_FRACTION = 0.65;
+
+function useLenisMobileOnly(): void {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let lenis: any;
+    let rafId = 0;
+    let destroyed = false;
+
+    const mq = window.matchMedia("(max-width: 767px)");
+
+    const teardown = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      lenis?.destroy?.();
+      lenis = undefined;
+    };
+
+    const setup = async () => {
+      if (!mq.matches || destroyed) return;
+      try {
+        const mod = await import("lenis");
+        const Lenis = mod.default;
+
+        lenis = new Lenis({
+          duration: 1.1,
+          easing: (t: number) => 1 - Math.pow(1 - t, 3),
+          smoothWheel: true,
+          touchMultiplier: 1.1,
+        });
+
+        const raf = (time: number) => {
+          lenis.raf(time);
+          rafId = requestAnimationFrame(raf);
+        };
+        rafId = requestAnimationFrame(raf);
+      } catch {
+        // Fall back natively if module unavailable
+      }
+    };
+
+    const handleChange = () => {
+      teardown();
+      setup();
+    };
+
+    setup();
+    mq.addEventListener("change", handleChange);
+
+    return () => {
+      destroyed = true;
+      mq.removeEventListener("change", handleChange);
+      teardown();
+    };
+  }, []);
+}
+
+/* ============================================================
+   MOBILE CARD — High-Performance Stack Logic & Anti-Aliasing
+   ============================================================ */
+const MobileCard: React.FC<MobileCardProps> = React.memo(
+  ({ chapter, index, total, stageProgress, visual: VisualComponent, reducedMotion }) => {
+    const holdEnd = index + HOLD_FRACTION;
+    const entryStart = index - (1 - HOLD_FRACTION);
+
+    let opacityInputRange: number[];
+    let opacityRange: number[];
+    let motionInputRange: number[];
+    let yRange: string[];
+    let scaleRange: number[];
+
+    if (index === 0) {
+      motionInputRange = [0, holdEnd, index + 1];
+      opacityInputRange = motionInputRange;
+      opacityRange = [1, 1, 0];
+      yRange = ["0px", "0px", "-24px"];
+      scaleRange = [1, 1, 0.985];
+    } else if (index === total - 1) {
+      motionInputRange = [entryStart, index, total];
+      opacityInputRange = motionInputRange;
+      opacityRange = [1, 1, 1];
+      yRange = ["32px", "0px", "0px"];
+      scaleRange = [0.985, 1, 1];
+    } else {
+      motionInputRange = [entryStart, index, holdEnd, index + 1];
+      opacityInputRange = motionInputRange;
+      opacityRange = [1, 1, 1, 0];
+      yRange = ["32px", "0px", "0px", "-24px"];
+      scaleRange = [0.985, 1, 1, 0.985];
+    }
+
+    const opacity = useTransform(stageProgress, opacityInputRange, opacityRange);
+    const y = useTransform(stageProgress, motionInputRange, yRange);
+    const scale = useTransform(stageProgress, motionInputRange, scaleRange);
+    const svgY = useTransform(stageProgress, [index, index + 1], ["6%", "-6%"]);
+
+    return (
+      <motion.div
+        className="absolute inset-0 w-full h-full shadow-[0_24px_60px_-15px_rgba(28,25,23,0.05)] dark:shadow-none isolate"
+        style={{
+          opacity: reducedMotion ? 1 : opacity,
+          y: reducedMotion ? 0 : y,
+          scale: reducedMotion ? 1 : scale,
+          zIndex: total - index,
+          willChange: "transform, opacity",
+          WebkitFontSmoothing: "antialiased",
+          MozOsxFontSmoothing: "grayscale",
+          transform: "translate3d(0, 0, 0)",
+          WebkitTransformStyle: "preserve-3d",
+          transformStyle: "preserve-3d",
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+          contain: "layout paint size",
+          transition: reducedMotion ? `opacity 0.3s ${EASE}` : undefined,
+        }}
+      >
+        {/* 1. OPAQUE BASE & CLIPPING MASK (Fixes square glitch and bleed-through) */}
+        <div className="relative w-full h-full bg-stone-50 dark:bg-[#1C1C1C] rounded-[1.75rem] overflow-hidden isolate">
+          
+          {/* 2. SVG BACKGROUND LAYER */}
+          <div
+            className="absolute inset-0 z-0 flex items-center justify-center opacity-[0.32] dark:opacity-[0.30] pointer-events-none"
+            style={{
+  color: chapter.accent,
+  filter: "contrast(1.05) saturate(0.9)",
+}}
+          >
+            <motion.div
+              className="w-[70%] h-[70%] flex items-center justify-center"
+              style={{ y: reducedMotion ? "0%" : svgY }}
+            >
+              <VisualComponent accent={chapter.accent} />
+            </motion.div>
+          </div>
+
+          {/* 3. CONTENT OVERLAY (Translucent bg + blur, letting parent clip the corners) */}
+<div className="relative z-10 flex flex-col h-full p-7 sm:p-9 justify-between select-none">
+              <div className="my-auto space-y-4 rounded-2xl px-4 py-4
+                bg-stone-50/55 dark:bg-[#1C1C1C]/55
+                backdrop-blur-[2px]">
+              {chapter.intro && (
+                <p className="text-[11px] font-semibold tracking-[0.15em] text-neutral-400 dark:text-neutral-500 uppercase">
+                  {chapter.intro}
+                </p>
+              )}
+
+              <h2 className="text-3xl sm:text-4xl font-medium tracking-tight text-neutral-900 dark:text-zinc-50 leading-[1.12] text-balance">
+                {chapter.title}
+              </h2>
+
+              <p className="text-sm sm:text-base text-zinc-950 dark:text-neutral-200 leading-relaxed font-light text-balance pt-2">
+                {chapter.desc}
+              </p>
+            </div>
+
+            <div
+  className="pt-6 mt-6 rounded-2xl px-4 py-4
+             bg-stone-50/55 dark:bg-[#1C1C1C]/55
+             backdrop-blur-[2px]
+             border-t border-neutral-200/60 dark:border-white/[0.06]"
+>
+              {chapter.points?.slice(0, 3).map((point, idx) => (
+                <div key={idx} className="flex items-start gap-3.5">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={chapter.accent}
+                    strokeWidth="2.5"
+                    className="flex-shrink-0 mt-[4px] opacity-80"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-[13px] font-medium text-neutral-600 dark:text-neutral-300 tracking-wide">
+                    {point}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. CRISP BORDER OVERLAY (Drawn over everything so it never aliases) */}
+          <div className="absolute inset-0 z-20 pointer-events-none rounded-[1.75rem] border border-neutral-200/60 dark:border-white/[0.1] shadow-inner" />
+        </div>
+      </motion.div>
+    );
+  }
+);
+MobileCard.displayName = "MobileCard";
+
+/* ============================================================
+   MAIN STORYTELLING CONTAINER COMPONENT
+   ============================================================ */
+const StorytellingSection: React.FC<StorytellingSectionProps> = ({
+  CHAPTERS,
+  VISUALS,
+  activeIndex,
+  sectionRefs,
+}) => {
+  const mobileContainerRef = useRef<HTMLDivElement>(null);
+  const totalChapters = CHAPTERS.length;
+  const reducedMotion = useReducedMotion() ?? false;
+
+  useLenisMobileOnly();
+
+  const { scrollYProgress } = useScroll({
+    target: mobileContainerRef,
+    offset: ["start start", "end end"],
+  });
+
+  const stageProgress = useTransform(scrollYProgress, (v) => v * totalChapters);
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
+
+  useMotionValueEvent(stageProgress, "change", (latest) => {
+    const idx = Math.min(totalChapters - 1, Math.max(0, Math.floor(latest)));
+    setActiveCardIndex((prev) => (prev === idx ? prev : idx));
+  });
+
+  const mountedIndices = useMemo(() => {
+    const set = new Set<number>();
+    for (let i = activeCardIndex - 1; i <= activeCardIndex + 1; i++) {
+      if (i >= 0 && i < totalChapters) set.add(i);
+    }
+    return set;
+  }, [activeCardIndex, totalChapters]);
+
+  const progressBarWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
+  return (
+    <div className="relative w-full text-neutral-900 dark:text-zinc-50 font-sans">
+      {/* MOBILE SCROLLER LAYER */}
+      <div
+        ref={mobileContainerRef}
+        className="block md:hidden relative w-full"
+        style={{ height: `${totalChapters * SEGMENT_VH}vh` }}
+      >
+        <div className="absolute top-0 left-0 w-full h-full flex flex-col pointer-events-none z-0">
+          {CHAPTERS.map((_, i) => (
+            <div
+              key={i}
+              ref={(el) => {
+                sectionRefs.current[i] = el;
+              }}
+              className="flex-1 w-full"
+            />
+          ))}
+        </div>
+
+        <div className="sticky top-0 left-0 w-full h-screen overflow-hidden flex flex-col px-4 justify-center bg-stone-100 dark:bg-black isolate">
+          <motion.div
+            className="absolute inset-0 z-0 transition-colors duration-700 ease-in-out opacity-40 dark:opacity-20"
+            style={{
+              background: `radial-gradient(circle at 50% 15%, ${
+                CHAPTERS[activeIndex]?.accent || "#fff"
+              }20, transparent 65%)`,
+            }}
+          />
+
+          <div className="absolute top-8 left-0 w-full px-8 flex items-center justify-between z-50 text-neutral-400 dark:text-neutral-600 pb-safe">
+            <span className="text-[10px] font-mono tracking-widest font-medium">
+              {String(activeCardIndex + 1).padStart(2, "0")}
+            </span>
+            <div className="flex-1 mx-5 h-[1px] bg-neutral-200 dark:bg-white/[0.08] relative overflow-hidden">
+              <motion.div
+                className="absolute top-0 left-0 h-full bg-neutral-800 dark:bg-zinc-200"
+                style={{ width: progressBarWidth }}
+              />
+            </div>
+            <span className="text-[10px] font-mono tracking-widest font-medium">
+              {String(totalChapters).padStart(2, "0")}
+            </span>
+          </div>
+
+          <div className="relative w-full max-w-[414px] mx-auto px-6 h-[66vh] z-10 isolate flex items-center justify-center">
+            {CHAPTERS.map((chapter, i) => {
+              if (!mountedIndices.has(i)) return null;
+              return (
+                <MobileCard
+                  key={chapter.id}
+                  chapter={chapter}
+                  index={i}
+                  total={totalChapters}
+                  stageProgress={stageProgress}
+                  visual={VISUALS[i]}
+                  reducedMotion={reducedMotion}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* DESKTOP VIEW SCROLLER LAYER */}
+      <div className="hidden md:flex w-full relative">
+        <div className="w-1/2 h-screen sticky top-0 z-20 flex items-center justify-center bg-stone-50 dark:bg-zinc-950 border-r border-stone-200 dark:border-zinc-900">
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            {CHAPTERS.map((chapter, index) => {
+              const VisualComponent = VISUALS[index];
+              return (
+                <motion.div
+                  key={chapter.id}
+                  animate={{
+                    opacity: activeIndex === index ? 1 : 0,
+                    scale: activeIndex === index ? 1 : 0.92,
+                  }}
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                >
+                  <VisualComponent accent={chapter.accent} />
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="w-1/2 relative z-10 flex flex-col bg-stone-50 dark:bg-zinc-950">
+          {CHAPTERS.map((chapter, index) => (
+            <div
+              key={chapter.id}
+              ref={(el) => {
+                sectionRefs.current[index] = el;
+              }}
+              className="w-full min-h-screen flex flex-col justify-center px-16 lg:px-24"
+            >
+              <h2 className="text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1] mb-6">
+                {chapter.title}
+              </h2>
+              <p className="text-lg text-neutral-500 dark:text-neutral-400 font-light leading-relaxed mb-8">
+                {chapter.desc}
+              </p>
+
+              {chapter.points && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-4 pt-8 border-t border-stone-200 dark:border-zinc-800/50">
+                  {chapter.points.map((point, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-4 py-2 border-b border-stone-200/50 dark:border-zinc-800/50 last:border-b-0 lg:last:border-b"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke={chapter.accent}
+                        strokeWidth="2.5"
+                        className="flex-shrink-0"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                        {point}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 export default function ProudMoments() {
   const [activeIndex, setActiveIndex] = useState(0);
   const sectionRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -965,99 +1421,12 @@ export default function ProudMoments() {
       />
       <AwardsHero />
       {/* Main Layout Container */}
-      <div className="flex flex-col md:flex-row w-full relative">
-        
-        {/* =========================================
-            LEFT PANEL: STICKY VISUAL STAGE
-            * Solid background prevents messy mobile overlap
-            * Absolute positioned crossfades prevent layout jumps
-            ========================================= */}
-        <div className="w-full md:w-1/2 h-[45vh] md:h-screen sticky top-0 z-20 flex items-center justify-center bg-stone-50 dark:bg-zinc-950 border-b border-stone-200 dark:border-zinc-900 md:border-b-0 md:border-r">
-          
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-             {/* Render all SVGs directly on top of each other, and simply crossfade opacity */}
-             {CHAPTERS.map((chapter, index) => {
-               const VisualComponent = VISUALS[index];
-               const isActive = activeIndex === index;
-               
-               return (
-                 <motion.div
-                   key={chapter.id}
-                   initial={false}
-                   animate={{
-                     opacity: isActive ? 1 : 0,
-                     scale: isActive ? 1 : 0.92,
-                     filter: isActive ? "blur(0px)" : "blur(8px)",
-                   }}
-                   transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                   className="absolute inset-0 flex items-center justify-center pointer-events-none px-4"
-                 >
-                   <VisualComponent accent={chapter.accent} />
-                 </motion.div>
-               );
-             })}
-          </div>
-
-          {/* Desktop Only: Minimalist Progress Indicator */}
-          <div className="hidden md:flex absolute bottom-12 left-12 items-center gap-6 z-30 font-mono text-xs">
-            {CHAPTERS.map((ch, i) => (
-              <div 
-                key={ch.id} 
-                className="flex items-center gap-2 transition-all duration-300"
-                style={{ opacity: activeIndex === i ? 1 : 0.25 }}
-              >
-                {activeIndex === i && (
-                  <motion.span layoutId="dot" className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ch.accent }} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* =========================================
-            RIGHT PANEL: NATURAL SCROLL CONTENT
-            * Content scrolls underneath the sticky header on mobile cleanly
-            ========================================= */}
-        <div className="w-full md:w-1/2 relative z-10 flex flex-col bg-stone-50 dark:bg-zinc-950">
-          {CHAPTERS.map((chapter, index) => (
-<div 
-               key={chapter.id}
-               ref={(el) => {
-                 sectionRefs.current[index] = el;
-               }}
-               className="w-full min-h-[60vh] md:min-h-screen flex flex-col justify-center px-6 sm:px-12 md:px-16 lg:px-24 py-16 md:py-0"
-             >
-<div className="max-w-md xl:max-w-xl">
-                 {/* Mobile Chapter Number (Hides on Desktop) */}
-                 <div className="flex md:hidden items-center gap-4 mb-4">
-                   <span className="text-xs font-mono tracking-widest" style={{ color: chapter.accent }}>
-                     {chapter.id}
-                   </span>
-                   <div className="h-[1px] w-8 bg-neutral-300 dark:bg-zinc-800" />
-                 </div>
-
-                 <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-medium tracking-tight leading-[1.1] mb-6">
-                   {chapter.title}
-                 </h2>
-
-                 {chapter.intro && (
-                   <p className="text-neutral-500 dark:text-neutral-400 text-sm sm:text-base md:text-lg font-light leading-relaxed mb-8">
-                     {chapter.intro}
-                   </p>
-                 )}
-
-                 <p className="text-neutral-500 dark:text-neutral-400 text-sm sm:text-base md:text-lg font-light leading-relaxed mb-8">
-                   {chapter.desc}
-                 </p>
-
-
-                 
-               </div>
-            </div>
-          ))}
-        </div>
-
-      </div>
+      <StorytellingSection
+    CHAPTERS={CHAPTERS}
+    VISUALS={VISUALS}
+    activeIndex={activeIndex}
+    sectionRefs={sectionRefs}
+/>
 
       <WhyChooseUs />
     </div>

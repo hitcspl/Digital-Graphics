@@ -8,10 +8,6 @@ import {
   SOCIAL_PROFILES,
   SERVICES,
   DEFAULT_OG_IMAGE,
-  AUTHOR_NAME,
-  AUTHOR_EMAIL,
-  AUTHOR_PORTFOLIO,
-  ORGANIZATION,
 } from "@/lib/site";
 
 export const organizationSchema: StructuredDataItem = {
