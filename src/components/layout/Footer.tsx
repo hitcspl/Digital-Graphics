@@ -323,7 +323,7 @@ export function Footer() {
 
             <button
               onClick={scrollToTop}
-              className={`flex items-center gap-2 rounded-full px-5 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors ${backToTopClasses}`}
+              className={`flex items-center gap-2 cursor-pointer rounded-full px-5 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors ${backToTopClasses}`}
             >
               Back to Top <ArrowUp className="h-3 w-3" />
             </button>

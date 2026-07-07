@@ -203,3 +203,12 @@ textarea::-webkit-scrollbar-thumb {
   background: #a3a3a3; /* neutral-400 */
   border-radius: 10px; 
 }
+
+@keyframes loader {
+  from {
+    transform: translateX(-150%);
+  }
+  to {
+    transform: translateX(900%);
+  }
+}
