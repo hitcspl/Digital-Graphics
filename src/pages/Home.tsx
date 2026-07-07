@@ -16,7 +16,7 @@ const homeOpenGraph: OpenGraphData = {
   title: "Digital Graphics India | Creative Agency & Brand Identity Design",
   description:
     "Digital Graphics is where strategy meets storytelling, and creativity meets impact. We partner with ambitious brands to build identities, campaigns, and experiences that cut through the noise.",
-  image: "https://digitalgraphicsindia.com/og-image.jpg",
+  image: "https://digitalgraphicsindia.com/Logo.jpg",
   imageWidth: 1200,
   imageHeight: 630,
   imageAlt: "Digital Graphics India - Creative Agency Workspace",
@@ -30,7 +30,7 @@ const homeTwitterCard: TwitterCardData = {
   title: "Digital Graphics India | Creative Agency & Brand Identity Design",
   description:
     "Digital Graphics is where strategy meets storytelling. We craft visual identities, campaigns, and experiences that cut through the noise and stay remembered.",
-  image: "https://digitalgraphicsindia.com/og-image.jpg",
+  image: "https://digitalgraphicsindia.com/Logo.jpg",
   imageAlt: "Digital Graphics India - Creative Agency Workspace",
   site: "@digitalgraphics",
 };

@@ -1,11 +1,16 @@
 const tokens = [
-  "Social Media",
   "Brand Identity",
-  "Motion Design",
-  "Web Experiences",
+  "Marketing Campaigns",
+  "Social Media",
   "Content Strategy",
+  "Video Editing",
   "Visual Storytelling",
-  "Editorial Direction",
+  "Creative Direction",
+  "Web Experiences",
+  "Proud Moments",
+  "Campaign Design",
+  "Motion Graphics",
+  "Editorial Design",
 ];
 
 function Row({ text, reverse, bg, fg }: { text: string[]; reverse?: boolean; bg: string; fg: string }) {

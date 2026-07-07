@@ -67,26 +67,111 @@ export function ContactSection() {
        <FormInput label="Company" placeholder="Your Agency" />
        
        <div className="space-y-2">
-         <label className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 dark:text-neutral-500" htmlFor="contact-message">Message</label>
-         <textarea 
-   id="contact-message"
-   required
-   rows={4}
-   className="w-full bg-transparent border-b border-neutral-300 dark:border-neutral-700 
-          py-3 focus:outline-none focus:border-black dark:focus:border-white 
-          text-black dark:text-white transition-colors resize-none" 
-   placeholder="Tell us about your project goals..."
-  />
-       </div>
+  <label
+    htmlFor="contact-message"
+    className="text-[10px] uppercase tracking-widest font-bold"
+  >
+    Message
+  </label>
 
-       <button 
-         disabled={status === 'loading'}
-         className="flex items-center gap-3 bg-black dark:bg-white text-white dark:text-black px-8 py-4 uppercase text-[10px] tracking-[0.2em] font-bold hover:opacity-80 transition-opacity disabled:opacity-50"
-   aria-label={status === 'loading' ? "Sending message" : "Send message"}
-       >
-         {status === 'loading' ? "Sending..." : "Send Message"}
-         <ArrowRight size={14} />
-       </button>
+  <textarea
+    id="contact-message"
+    required
+    rows={4}
+    placeholder="Tell us about your project goals..."
+    className="
+      w-full
+      bg-transparent
+      border-b
+      border-border
+      py-3
+      text-foreground
+      placeholder:text-muted-foreground/30
+      focus:outline-none
+      focus:border-primary
+      transition-colors
+      resize-none
+    "
+  />
+</div>
+
+    <div className="w-full flex items-center justify-center">
+  <button
+    type="submit"
+    disabled={status === "loading"}
+    aria-label={status === "loading" ? "Sending message" : "Send message"}
+    className="
+      group
+      relative
+      inline-flex
+      items-center
+      justify-center
+      gap-3
+      overflow-hidden
+      rounded-none
+      bg-black
+      dark:bg-white
+      px-8
+      sm:px-10
+      py-4
+      min-h-[56px]
+      text-[10px]
+      sm:text-[11px]
+      font-bold
+      uppercase
+      tracking-[0.2em]
+      text-white
+      dark:text-black
+      transition-all
+      duration-500
+      ease-out
+      hover:-translate-y-1
+      hover:shadow-[0_18px_40px_rgba(0,0,0,0.25)]
+      dark:hover:shadow-[0_18px_40px_rgba(255,255,255,0.15)]
+      active:translate-y-0
+      active:scale-[0.98]
+      disabled:pointer-events-none
+      disabled:opacity-50
+    "
+  >
+    {/* Sliding Shine */}
+    <span
+      className="
+        absolute
+        inset-0
+        -translate-x-full
+        skew-x-12
+        bg-gradient-to-r
+        from-transparent
+        via-white/20
+        to-transparent
+        transition-transform
+        duration-700
+        group-hover:translate-x-[220%]
+        dark:via-black/15
+      "
+    />
+
+    {/* Text */}
+    <span className="relative z-10">
+      {status === "loading" ? "Sending..." : "Send Message"}
+    </span>
+
+    {/* Arrow */}
+    <ArrowRight
+      size={14}
+      className="
+        relative
+        z-10
+        transition-all
+        duration-300
+        group-hover:translate-x-1
+        group-hover:scale-110
+      "
+    />
+  </button>
+</div>
+
      </form>
   )}
 </div>
