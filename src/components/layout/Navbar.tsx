@@ -196,7 +196,7 @@ export function Navbar() {
                 onClick={() => navigateToSection("#contact")}
                 aria-current={isContactActive ? "location" : undefined}
                 className={cn(
-                  "h-10 rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-background transition-colors hover:bg-primary",
+                  "h-10 rounded-full bg-foreground cursor-pointer px-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-background transition-colors hover:bg-primary",
                   isContactActive && "bg-primary",
                   FOCUS_RING
                 )}
@@ -206,39 +206,61 @@ export function Navbar() {
 
               {/* Desktop Proud Moments Magic Shine Button */}
               <button
-                type="button"
-                onClick={() => navigateTo("/proud-moments")}
-                aria-label="Proud Moments"
-                className={cn(
-                  "group relative inline-flex h-10 items-center justify-center overflow-hidden rounded-full p-[1.5px] transition-transform hover:scale-105 active:scale-95",
-                  FOCUS_RING
-                )}
-              >
-                <span 
-                  className="absolute inset-[-1000%] animate-spin bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,#CFA04A_50%,transparent_100%)]" 
-                  style={{ animationDuration: '4s' }} 
-                />
-<span
-  className="
-    relative flex h-full w-full items-center justify-center
-    rounded-full
-    cursor-pointer
-    border border-[#D2B06B]/60
-    dark:border-[#E8D29B]/20
-    bg-background/95
-    px-5
-    backdrop-blur-3xl
-    transition-colors
-    group-hover:bg-background/80
-  "
+  type="button"
+  onClick={() => navigateTo("/proud-moments")}
+  aria-label="Proud Moments"
+  className={cn(
+    // Layout & Responsiveness: Adapts smoothly from mobile to desktop
+    "group relative flex w-fit items-center justify-center",
+    "h-10 p-[1.5px]", 
+    // Spacing & Shape: Increased padding (2px) ensures the gold border is visible
+    "overflow-hidden rounded-full",
+    // Interaction: Refined, subtle scaling and shadow for a premium feel
+    "transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]",
+    "shadow-sm hover:shadow-md dark:shadow-none",
+    FOCUS_RING
+  )}
 >
-                    <img
-                    src="/Proud Moments-Logo 2 (2).png"
-                    alt="Proud Moments"
-                    className="h-6 w-auto object-contain transition-transform group-hover:scale-104"
-                  />
-                </span>
-              </button>
+  {/* Animated Metallic Border 
+    - Uses will-change-transform for performance 
+    - Contains a bright center stop (e.g., #FFFDE7) to create the metallic "glint"
+  */}
+  <span
+    className={cn(
+      "absolute inset-[-1000%] animate-spin will-change-transform",
+      // Light Mode: Rich gold with a bright pale-yellow core for the shine
+      "bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,#B89A52_42%,#FFFDE7_50%,#B89A52_58%,transparent_100%)]",
+      // Dark Mode: Lighter gold with a stark white core for sharp contrast
+      "dark:bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,#D2B06B_42%,#FFFFFF_50%,#D2B06B_58%,transparent_100%)]"
+    )}
+    style={{ animationDuration: "3.5s" }}
+  />
+
+  {/* Inner Content Container */}
+  <span
+    className={cn(
+      "relative z-10 flex h-full w-full items-center justify-center",
+      "rounded-full cursor-pointer px-6",
+      // Solid backgrounds guarantee the animated border doesn't bleed inward
+      "bg-white dark:bg-black",
+      "border border-[#B89A52]/10 dark:border-[#E8D29B]/10",
+      "transition-colors duration-300",
+      "group-hover:bg-slate-50 dark:group-hover:bg-neutral-900"
+    )}
+  >
+    <img
+      src="/Proud Moments-Logo 2 (2).png"
+      alt="Proud Moments"
+      // Forces high-quality rendering to prevent blur on high-res displays
+      style={{ imageRendering: "-webkit-optimize-contrast" }}
+      className={cn(
+        // Responsive image sizing prevents distortion
+        "h-7 w-auto object-contain",
+        "transition-transform duration-300 group-hover:scale-[1.02] will-change-transform"
+      )}
+    />
+  </span>
+</button>
             </div>
 
             <button
@@ -354,39 +376,42 @@ export function Navbar() {
   aria-label="Proud Moments"
   className={cn(
     "group relative flex w-full items-center justify-center",
-    "h-20 sm:h-24", // Standardized heights
-    "overflow-hidden rounded-full p-[1.5px]",
+    "h-16 sm:h-20", // Standardized heights preserved
+    "overflow-hidden rounded-full p-[2px]", // Tweaked slightly to 2px so the new shine is visible
     "transition-all duration-300 hover:scale-[1.01] active:scale-[0.98]",
     "shadow-md",
     FOCUS_RING
   )}
 >
-  {/* Magic Border Animation */}
+  {/* Magic Metallic Border Animation */}
   <span
     className={cn(
-      "absolute inset-[-1000%] animate-spin",
-      "bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,#B89A52_50%,transparent_100%)]",
-      "dark:bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,#E8D29B_50%,transparent_100%)]"
+      "absolute inset-[-1000%] animate-spin will-change-transform",
+      // Light Mode: Rich gold with a bright pale-yellow core for the shine
+      "bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,#B89A52_42%,#FFFDE7_50%,#B89A52_58%,transparent_100%)]",
+      // Dark Mode: Lighter gold with a stark white core for sharp contrast
+      "dark:bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,#D2B06B_42%,#FFFFFF_50%,#D2B06B_58%,transparent_100%)]"
     )}
-    style={{ animationDuration: "4s" }}
+    style={{ animationDuration: "3.5s" }}
   />
 
   {/* Inner Content Container */}
   <span
     className={cn(
       "relative z-10 flex h-full w-full items-center justify-center",
-      "rounded-full cursor-pointer", // Changed to full to match the outer container
-      "bg-white dark:bg-black", // Forced solid background colors
+      "rounded-full cursor-pointer",
+      "bg-white dark:bg-black", 
       "transition-colors duration-300",
-      "group-hover:bg-white/90 dark:group-hover:bg-black/90",
+      // Used solid colors instead of /90 opacity so the bright animation doesn't bleed through
+      "group-hover:bg-slate-50 dark:group-hover:bg-neutral-900",
       "border border-[#B89A52]/30 dark:border-[#E8D29B]/20"
     )}
   >
     <img
       src="/Proud Moments-Logo 2 (2).png"
       alt="Proud Moments"
-      // Added style to force high-quality rendering and prevent blur
       style={{ imageRendering: '-webkit-optimize-contrast' }}
+      // Image sizing and aggressive hover scale preserved for the mobile nav
       className="h-9 sm:h-11 w-auto object-contain transition-transform duration-300 group-hover:scale-105 will-change-transform"
     />
   </span>
