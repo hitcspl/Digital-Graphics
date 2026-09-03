@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/proud-moments", "destination": "/proud-moments.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

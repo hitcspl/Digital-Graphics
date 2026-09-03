@@ -36,6 +36,10 @@ const mobileLinkVariants = {
 };
 
 export function Navbar() {
+  const [navVisible, setNavVisible] = useState(true)
+
+const lastScrollY = useRef(0)
+const ticking = useRef(false)
   const [scrolled, setScrolled] = useState(false);
   const reduce = !!useReducedMotion();
 
@@ -58,27 +62,51 @@ export function Navbar() {
 
   // --- Smart scroll listener for background blur only ---
   const scrolledRef = useRef(false);
-  const tickingRef = useRef(false);
 
-  useEffect(() => {
-    const onScroll = () => {
-      if (tickingRef.current) return;
-      tickingRef.current = true;
-      requestAnimationFrame(() => {
-        const y = window.scrollY;
-        const nextScrolled = y > SCROLLED_THRESHOLD;
-        
-        if (nextScrolled !== scrolledRef.current) {
-          scrolledRef.current = nextScrolled;
-          setScrolled(nextScrolled);
+useEffect(() => {
+  const onScroll = () => {
+    if (ticking.current) return
+
+    ticking.current = true
+
+    requestAnimationFrame(() => {
+      const currentY = window.scrollY
+
+      // existing blur logic
+      const nextScrolled = currentY > SCROLLED_THRESHOLD
+
+      if (nextScrolled !== scrolledRef.current) {
+        scrolledRef.current = nextScrolled
+        setScrolled(nextScrolled)
+      }
+
+      // keep visible near top
+      if (currentY <= 40) {
+        setNavVisible(true)
+      } else {
+        const delta = currentY - lastScrollY.current
+
+        // hide only after meaningful scroll
+        if (delta > 6) {
+          setNavVisible(false)
         }
-        tickingRef.current = false;
-      });
-    };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+        // show immediately on upward scroll
+        if (delta < -6) {
+          setNavVisible(true)
+        }
+      }
+
+      lastScrollY.current = currentY
+
+      ticking.current = false
+    })
+  }
+
+  window.addEventListener("scroll", onScroll, { passive: true })
+
+  return () => window.removeEventListener("scroll", onScroll)
+}, [])
 
   // --- Focus management + Escape-to-close for the mobile menu ---
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -114,9 +142,16 @@ export function Navbar() {
       </a>
 
       <motion.header
-        initial={false}
-        className="fixed inset-x-0 top-0 z-[100]"
-      >
+    initial={false}
+    animate={{
+        y: navVisible || menuOpen ? 0 : "-110%"
+    }}
+    transition={{
+        duration: 0.45,
+        ease: [0.22, 1, 0.36, 1]
+    }}
+    className="fixed inset-x-0 top-0 z-[100] will-change-transform"
+>
         {/* Animated surface layer: backdrop blur, opacity and shadow cross-fade */}
         <motion.div
           aria-hidden="true"

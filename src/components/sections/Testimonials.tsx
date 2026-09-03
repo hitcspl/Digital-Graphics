@@ -4,80 +4,202 @@ import React, { useRef, useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface VintageLetter {
+export interface VintageLetter {
   id: string;
   dispatchDate: string;
-  archiveSerial: string;
   content: string;
   signee: string;
-  designation: string;
-  institution: string;
   initialCap: string;
+}
+
+export interface LetterCardProps {
+  letter: VintageLetter;
+  index: number;
+  logo: LogoItem;
 }
 
 const vintageArchive: VintageLetter[] = [
   {
     id: "01",
-    dispatchDate: "12.05.2026",
-    archiveSerial: "MS/8042-B",
-    content: "The studio did not simply overhaul our communication pipelines; they completely reconstructed our visual narrative logic. Our market acquisition velocity expanded by 340% within the initial ninety days of deployment.",
-    signee: "Arjun Mehta",
-    designation: "Founder & Creative Director",
-    institution: "Mocha Group Corp.",
-    initialCap: "T"
+    dispatchDate: "17.11.2026",
+    content: "We needed a team that could keep up with our day to day promotions and offers without constant follow ups, and Digital Graphics took that off our plate completely. Even our last minute requests have always been delivered the same day. Our customers now recognise our posts instantly, and we've seen stronger engagement and more walk ins.",
+    signee: "Suvidha Supermart",
+    
+    initialCap: "W",
   },
   {
     id: "02",
-    dispatchDate: "29.03.2026",
-    archiveSerial: "TV/1193-A",
-    content: "Every blueprint, high-fidelity asset, and interactive framework delivered felt fit for a design monograph. They do not operate as an external agency—they code and design with the absolute soul of equity co-founders.",
-    signee: "Priya Nanda",
-    designation: "Chief Executive Officer",
-    institution: "TechVenture Global",
-    initialCap: "E"
+    dispatchDate: "08.09.2025",
+    content: "During our time working with Digital Graphics, they consistently delivered creative that matched our brand voice and turned things around quickly. One of our reels crossed 1M+ views, and our overall engagement, reach, and brand visibility improved noticeably across our social media platforms.",
+    signee: "Osum",
+    initialCap: "D",
   },
   {
     id: "03",
-    dispatchDate: "04.01.2026",
-    archiveSerial: "EW/9921-E",
-    content: "Their mastery over creative technology, physics-based motion setups, and advanced cinematic sequencing solved aesthetic challenges we spent cycles trying to decode. An exceptional, uncompromised layer of craft.",
-    signee: "Rohan Das",
-    designation: "Principal Technical Architect",
-    institution: "EcoWear Ecosystems",
-    initialCap: "T"
+    dispatchDate: "21.02.2026",
+    content: "Working with Digital Graphics changed how we approach our brand online. Our social presence is now consistent, intentional, and on brand. In six months, we saw a noticeable increase in inquiries, 6× follower growth, and 26K engagement in just 15 days on one campaign. What stood out most was how well they understood our business.",
+    signee: "Annapurna Trading",
+    initialCap: "W",
   },
   {
     id: "04",
-    dispatchDate: "18.11.2025",
-    archiveSerial: "EL/4402-C",
-    content: "They orchestrated the complete convergence of our physical interactive art installations and digital frameworks. The resulting audience retention metrics completely altered our global brand trajectory.",
-    signee: "Vikram Malhotra",
-    designation: "Managing Partner",
-    institution: "Engine Logistics Int.",
-    initialCap: "T"
+    dispatchDate: "18.07.2024",
+    content: "Digital Graphics has been our go to team for content, from ideation to final static posts and reels. They understand our vision without lengthy briefs, and even last minute event changes have always been delivered on time. Their consistency and creativity have made working with them genuinely easy.",
+    signee: "JCI",
+    initialCap: "D",
   },
   {
     id: "05",
-    dispatchDate: "02.09.2025",
-    archiveSerial: "ME/3011-D",
-    content: "Pristine execution paired with rigorous strategic discipline. The structural design layouts and spatial philosophies provided continue to organically compound our engagement volume month over month.",
-    signee: "Ananya Roy",
-    designation: "VP of Product Experience",
-    institution: "Minu Enhance Ltd.",
-    initialCap: "P"
-  }
+    dispatchDate: "30.10.2025",
+    content: "We run on tight event schedules, and Digital Graphics has never let that become a problem. Whether it's a reel needed within hours or a complete content plan for a chapter meeting, they consistently deliver clean, professional work on time while maintaining the same quality every time.",
+    signee: "BNI",
+    initialCap: "W",
+  },
+  {
+    id: "06",
+    dispatchDate: "05.03.2024",
+    content: "From creative ideation to execution, Digital Graphics has made our content far more polished than before. Despite handling requests from multiple committees and urgent same day revisions, they've never missed a deadline. That level of reliability is genuinely hard to find.",
+    signee: "RGC",
+    initialCap: "F",
+  },
 ];
+
+export interface LogoItem {
+  src: string;
+  darkSrc?: string;
+  name: string;
+}
+
+const Logos: LogoItem[] = [
+  { src: "/testimonial/suvidha-supermart1.png", name: "Suvidha Supermart" },
+  { src: "/testimonial/osum1.png", name: "Osum" },
+  { src: "/testimonial/annapurna-trading1.png", darkSrc: "/testimonial/annapurna-trading.jpg", name: "Annapurna Trading" },
+  { src: "/testimonial/jci1.png", name: "JCI" },
+  { src: "/testimonial/bni1.png", name: "BNI" },
+  { src: "/testimonial/rgc1.png", name: "RGC" },
+];
+
+export { Logos as logos };
+
+function LetterCard({ letter, logo }: LetterCardProps) {
+  const [imgError, setImgError] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const check = () => setIsDark(root.classList.contains("dark"));
+    check();
+
+    const observer = new MutationObserver(check);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const resolvedSrc = isDark && logo?.darkSrc ? logo.darkSrc : logo?.src;
+
+  const showPlaceholder =
+    !logo || imgError || !resolvedSrc || resolvedSrc.trim() === "";
+
+  return (
+    <article className="w-full max-w-[280px] sm:max-w-[340px] md:max-w-[380px] shrink-0 snap-center bg-white dark:bg-neutral-950/70 border border-neutral-200 dark:border-neutral-800 p-5 sm:p-6 md:p-7 flex flex-col justify-between relative transition-all duration-500 ease-out hover:bg-neutral-100/80 dark:hover:bg-neutral-900/50 hover:border-neutral-200 dark:hover:border-neutral-700 group rounded-xl overflow-hidden">
+
+      {/* SUBHEADER FRAME */}
+      <div className="w-full flex justify-between items-baseline mb-6 sm:mb-8 text-[10px] sm:text-xs font-mono tracking-wider text-neutral-400 dark:text-neutral-500 relative z-10">
+        <div className="space-y-0.5">
+          <p className="font-bold text-neutral-600 dark:text-neutral-400">
+            {letter.dispatchDate}
+          </p>
+        </div>
+      </div>
+
+      {/* REVIEW TYPOGRAPHY BODY */}
+      <div className="flex-grow flex flex-col justify-start my-1 text-left relative z-10">
+
+        <div
+          className="absolute -top-3 -left-1 sm:-top-4 sm:-left-2 text-7xl sm:text-8xl font-serif text-neutral-200 dark:text-neutral-800 pointer-events-none select-none z-0 transition-colors duration-500 group-hover:text-neutral-300 dark:group-hover:text-neutral-700"
+          aria-hidden="true"
+        >
+          &ldquo;
+        </div>
+
+        <p className="font-serif text-sm sm:text-base leading-relaxed text-neutral-900 dark:text-neutral-300 antialiased tracking-wide relative z-10">
+          <span className="font-serif text-3xl sm:text-4xl font-bold float-left mr-2 mt-0 pt-1 leading-none text-neutral-900 dark:text-white">
+            {letter.initialCap}
+          </span>
+          {letter.content.substring(1)}
+          <span className="font-serif text-xl sm:text-2xl font-bold text-neutral-400 dark:text-neutral-500 ml-1 leading-none inline-block align-middle">
+            &rdquo;
+          </span>
+        </p>
+      </div>
+
+      {/* CENTERED DIVIDER LINE */}
+      <div className="self-center relative w-[50%] group-hover:w-full h-[1px] bg-neutral-200 dark:bg-neutral-800 my-4 transition-all duration-500 ease-out overflow-hidden z-10">
+        <div
+          className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 delay-100 bg-gradient-to-r from-transparent via-neutral-500 dark:via-neutral-300 to-transparent"
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* CLOSING CREDENTIAL FOOTER SIGNATURE & LOGO */}
+      <footer className="relative z-10 mt-1 flex w-full items-center justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1 text-left">
+          <span
+            className="
+              block
+              truncate
+              font-sans
+              font-semibold
+              text-sm
+              xs:text-[15px]
+              sm:text-base
+              tracking-normal
+              text-neutral-800
+              dark:text-zinc-200
+            "
+          >
+            {letter.signee}
+          </span>
+        </div>
+
+        <div
+          className="flex h-10 w-[72px] shrink-0 items-center justify-end transition-transform duration-500 group-hover:scale-105 sm:h-11 sm:w-[88px]"
+          aria-label={
+            showPlaceholder
+              ? "Logo placeholder"
+              : `${logo.name} logo`
+          }
+        >
+          {showPlaceholder ? (
+            <span
+              className="block h-full w-full"
+              aria-hidden="true"
+            />
+          ) : (
+            <img
+              src={resolvedSrc}
+              alt={`${logo.name} logo`}
+              className="max-h-full max-w-full object-contain object-right drop-shadow-sm dark:drop-shadow-none"
+              loading="lazy"
+              onError={() => setImgError(true)}
+            />
+          )}
+        </div>
+      </footer>
+    </article>
+  );
+}
 
 export function Testimonials() {
   const trackRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const [isDragging, setIsDragging] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  
+
   const pointerStartX = useRef(0);
   const trackTransformX = useRef(0);
-  const animationFrameId = useRef<number | null>(null);
+  const animationFrameId = useRef<number | null>(0);
   const velocityX = useRef(0);
 
   const tripleArchive = [...vintageArchive, ...vintageArchive, ...vintageArchive];
@@ -89,9 +211,9 @@ export function Testimonials() {
       if (!isDragging) {
         if (Math.abs(velocityX.current) > 0.1) {
           trackTransformX.current += velocityX.current;
-          velocityX.current *= 0.94; 
+          velocityX.current *= 0.94;
         } else if (!isHovered) {
-          trackTransformX.current -= 0.75; 
+          trackTransformX.current -= 0.75;
         }
       }
 
@@ -125,7 +247,7 @@ export function Testimonials() {
     pointerStartX.current = currentX;
 
     trackTransformX.current += deltaX;
-    velocityX.current = deltaX; 
+    velocityX.current = deltaX;
   };
 
   const shiftTrack = (direction: "left" | "right") => {
@@ -135,12 +257,12 @@ export function Testimonials() {
 
   return (
     <section id="testimonials" className="bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 py-10 sm:py-16 md:py-20 overflow-hidden transition-colors duration-300 select-none relative scroll-mt-[70px] md:scroll-mt-[80px]">
-      
+
       {/* MICRO-CALIBRATED GRAPH CANVAS DOT PATTERN */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(#e1e1e1_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#262626_1.5px,transparent_1.5px)] [background-size:20px_20px]" />
 
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 md:px-8 lg:px-12 flex flex-col items-center relative z-10">
-        
+
         {/* ============================================================================ */}
         {/* COMPACT GIANT EDITORIAL HEADER                                               */}
         {/* ============================================================================ */}
@@ -148,7 +270,7 @@ export function Testimonials() {
           <span className="text-[10px] font-sans font-extrabold tracking-[0.3em] text-neutral-400 dark:text-neutral-500 uppercase mb-2">
             TESTIMONIAL ARCHIVES
           </span>
-          
+
           <h2 className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl tracking-tight leading-none text-neutral-950 dark:text-white max-w-4xl">
             What our <span className="italic font-normal font-serif text-neutral-500 dark:text-neutral-400">clients</span> say.
           </h2>
@@ -175,54 +297,18 @@ export function Testimonials() {
             className="flex gap-4 sm:gap-6 md:gap-8 w-max will-change-transform"
             style={{ transform: `translate3d(0px, 0, 0)` }}
           >
-            {tripleArchive.map((letter, index) => (
-              <article
-                key={`${letter.archiveSerial}-${index}`}
-                className="w-[280px] sm:w-[340px] md:w-[380px] shrink-0 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-5 sm:p-6 md:p-7 flex flex-col justify-between relative transition-all duration-300 shadow-md hover:shadow-xl dark:shadow-black/40 group rounded-xl"
-              >
-                {/* HIGHLY VISIBLE CLEAN SUBHEADER FRAME */}
-                <div className="w-full flex justify-between items-baseline mb-4 md:mb-5 text-[10px] font-mono tracking-wider text-neutral-400 dark:text-neutral-500">
-                  <div className="space-y-0.5">
-                    <p className="font-bold text-neutral-800 dark:text-neutral-200">{letter.dispatchDate}</p>
-                    <p className="opacity-75 font-sans text-[9px]">{letter.archiveSerial}</p>
-                  </div>
-                  <span className="font-serif italic font-medium opacity-60 group-hover:opacity-100 transition-opacity">
-                    # {letter.id}
-                  </span>
-                </div>
+            {tripleArchive.map((letter, index) => {
+              const logo = Logos[index % Logos.length];
 
-                {/* REVIEW TYPOGRAPHY BODY */}
-                <div className="flex-grow flex flex-col justify-start my-1 text-left">
-                  <p className="font-serif text-sm sm:text-base leading-relaxed text-neutral-700 dark:text-neutral-300 antialiased tracking-wide">
-                    <span className="font-serif text-2xl font-bold float-left mr-1.5 line-height-none text-neutral-900 dark:text-white">
-                      {letter.initialCap}
-                    </span>
-                    {letter.content.substring(1)}
-                  </p>
-                </div>
-
-                {/* MODERN TIGHT COMPACT DIVIDER GRID */}
-                <div className="w-12 h-[1px] bg-neutral-200 dark:bg-neutral-800 my-4 md:my-5 group-hover:w-full transition-all duration-500" />
-
-                {/* CLOSING CREDENTIAL FOOTER SIGNATURE */}
-                <footer className="w-full flex items-center justify-between">
-                  <div className="flex flex-col text-left">
-                    <span className="font-sans font-semibold text-sm text-neutral-950 dark:text-neutral-50 tracking-tight">
-                      {letter.signee}
-                    </span>
-                    <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 leading-tight">
-                      {letter.designation}
-                      <span className="block font-serif italic text-neutral-400 dark:text-neutral-500 text-[10px] mt-0.5">{letter.institution}</span>
-                    </span>
-                  </div>
-
-                  {/* PREMIUM CLEAN STAMP SYSTEM */}
-                  <div className="w-8 h-8 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-[9px] text-neutral-500 dark:text-neutral-400 font-mono font-bold flex items-center justify-center rounded-lg shadow-inner shrink-0 group-hover:rotate-6 transition-transform duration-300">
-                    VERIFIED
-                  </div>
-                </footer>
-              </article>
-            ))}
+              return (
+                <LetterCard
+                  key={`${letter.id}-${index}`}
+                  letter={letter}
+                  index={index}
+                  logo={logo}
+                />
+              );
+            })}
           </div>
         </div>
 

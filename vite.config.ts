@@ -3,12 +3,21 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite"
+import { SITE_URL } from "./src/lib/site"
+
+const siteUrlPlugin = {
+  name: "site-url-transform",
+  transformIndexHtml(html: string) {
+    return html.replace(/{{SITE_URL}}/g, SITE_URL);
+  },
+};
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
   react(),
   tailwindcss(),
+  siteUrlPlugin,
 
   visualizer({
     filename: "stats.html",
