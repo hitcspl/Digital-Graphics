@@ -4,7 +4,7 @@ export const SITE_DESCRIPTION =
   "Digital Graphics is where strategy meets storytelling. We craft visual identities, campaigns, and experiences that cut through the noise and stay remembered.";
 export const DEFAULT_KEYWORDS =
   "digital marketing, brand identity, logo design, social media management, trophy design, awards, corporate gifts, Ranchi, Jharkhand";
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/Logo.jpg`;
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 export const LOGO_URL = `${SITE_URL}/Logo.jpg`;
 export const DEFAULT_LOCALE = "en_IN";
 export const THEME_COLOR_LIGHT = "#0A0A0A";

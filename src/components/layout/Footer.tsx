@@ -1,10 +1,83 @@
 "use client"
 
-import React, { useRef, useEffect } from "react"
+import React, { useRef, useEffect, useLayoutEffect, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { Instagram, ArrowUp, ArrowRight, Youtube, Facebook } from "lucide-react"
 import { MagneticButton } from "../ui/MagneticButton"
 import { useNavigation } from "@/navigation/NavigationEngine"
+
+/**
+ * Measures the natural pixel-width of `text` (rendered with the exact same
+ * font styles as the visible hero text) and derives a font-size that makes
+ * the text occupy `widthRatio` of the container's content width.
+ *
+ * This is what makes the fix text-agnostic and screen-agnostic:
+ * "Digital Graphics" and "Proud Moments" have different natural widths,
+ * and vw-based clamp() can't know that — direct measurement can.
+ */
+function useFitText(
+  containerRef: React.RefObject<HTMLElement | null>,
+  text: string,
+  {
+    minFontSize = 30, // px – hard floor, protects ultra-small phones
+    maxFontSize = 560, // px – hard ceiling, protects 8K/absurd displays
+    widthRatio = 0.94, // target: text occupies 94% of container width
+    fallback = "clamp(2.3rem, 10.2vw, 11rem)",
+  }: {
+    minFontSize?: number
+    maxFontSize?: number
+    widthRatio?: number
+    fallback?: string
+  } = {}
+) {
+  const measureRef = useRef<HTMLSpanElement>(null)
+  const [fontSize, setFontSize] = useState<number | null>(null)
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    const measureEl = measureRef.current
+    if (!container || !measureEl) return
+
+    const REFERENCE_PX = 100 // arbitrary reference size to measure natural width at
+
+    const recalc = () => {
+      const containerWidth = container.clientWidth
+      if (!containerWidth) return
+
+      measureEl.style.fontSize = `${REFERENCE_PX}px`
+      const naturalWidth = measureEl.scrollWidth
+      if (!naturalWidth) return
+
+      const targetWidth = containerWidth * widthRatio
+      const next = Math.min(
+        Math.max((targetWidth / naturalWidth) * REFERENCE_PX, minFontSize),
+        maxFontSize
+      )
+      setFontSize(Math.round(next * 100) / 100)
+    }
+
+    recalc()
+
+    const ro = new ResizeObserver(() => {
+      // rAF avoids layout thrash / jitter while dragging a window edge
+      requestAnimationFrame(recalc)
+    })
+    ro.observe(container)
+    window.addEventListener("orientationchange", recalc)
+
+    return () => {
+      ro.disconnect()
+      window.removeEventListener("orientationchange", recalc)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, minFontSize, maxFontSize, widthRatio])
+
+  const style: React.CSSProperties = {
+    fontSize: fontSize !== null ? `${fontSize}px` : fallback,
+  }
+
+  return { measureRef, style }
+}
 
 export function Footer() {
   const location = useLocation()
@@ -22,7 +95,6 @@ export function Footer() {
 
   // Dynamic Theme Definitions
   const brandText = isProudMoments ? "Proud Moments" : "Digital Graphics"
-  const buttonText = isProudMoments ? "Digital Graphics" : "Proud Moments"
   const buttonLink = isProudMoments ? "/" : "/proud-moments"
 
   // Luxury Material Finish
@@ -42,10 +114,6 @@ export function Footer() {
     ? "border-[#CFA04A] text-[#8C6215] dark:border-[#ECD48A] dark:text-[#FFFDF4]"
     : "border-blue-600 text-blue-800 dark:border-blue-500 dark:text-blue-50"
 
-  const buttonBgFill = isProudMoments
-    ? "bg-[#CFA04A] dark:bg-[#ECD48A]"
-    : "bg-blue-600 dark:bg-blue-500"
-
   const linkHoverColor = isProudMoments
     ? "hover:text-[#B98733] dark:hover:text-[#FFF6DA]"
     : "hover:text-blue-700 dark:hover:text-blue-400"
@@ -57,6 +125,14 @@ export function Footer() {
   const facebookHoverClasses = isProudMoments
     ? "hover:border-blue-500 hover:text-blue-500 dark:hover:border-blue-500 dark:hover:text-blue-500"
     : "hover:border-blue-600 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400"
+
+  // Text-fit: measures brandText against the wrapper's real width and returns
+  // a fontSize that fills ~94% of it, on every screen, with no clipping.
+  const { measureRef, style: fitStyle } = useFitText(textRef, brandText, {
+    minFontSize: 30,
+    maxFontSize: 560,
+    widthRatio: 0.94,
+  })
 
   useEffect(() => {
     let animationFrameId: number
@@ -98,6 +174,8 @@ export function Footer() {
           autoX.current += currentSpeedSetting * dt * autoDirection.current
 
           // Bounce logic: Switch direction at the edges of the text
+          // (rect.width now reflects the fitted font-size automatically,
+          // so the bounce range always matches the actual rendered text)
           if (autoX.current > rect.width) {
             autoX.current = rect.width
             autoDirection.current = -1 // Go Left
@@ -157,27 +235,46 @@ export function Footer() {
   return (
     <footer className="overflow-hidden bg-white px-4 pt-16 font-sans text-black md:px-8 dark:bg-[#050505] dark:text-white">
       <div className="mx-auto max-w-[1400px]">
-        {/* TOP SECTION: Spotlight Logo */}
-        <div className="flex w-full cursor-default items-center justify-center overflow-hidden px-2 pb-10 select-none">
+        {/*
+          TOP SECTION: Spotlight Logo — FULL-BLEED
+          This block intentionally breaks out of the 1400px content max-width
+          using the left-1/2 / -translate-x-1/2 / w-screen trick, so the hero
+          can actually use the full viewport on big monitors/TVs instead of
+          being starved (and clipped) by the 1400px cap above.
+          The footer's own `overflow-hidden` keeps this 100%-safe against
+          horizontal scrollbars.
+        */}
+        <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden px-3 pb-10 sm:px-4 lg:px-6">
           <div
             ref={textRef}
-            className="relative mx-auto flex w-full touch-none justify-center"
+            className="relative mx-auto flex w-full max-w-none touch-none cursor-default items-center justify-center select-none"
             onMouseMove={handleMouseMove}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
+            {/* Hidden measuring node — invisible, mirrors the exact type
+                styles of the real text, used only to compute natural width */}
+            <span
+              ref={measureRef}
+              aria-hidden="true"
+              className="pointer-events-none invisible absolute top-0 left-0 -z-10 whitespace-nowrap font-black tracking-tighter uppercase"
+            >
+              {brandText}
+            </span>
+
             {/* Base Outlined Text */}
             <div
-              className="transform-gpu pb-6 text-[clamp(2.5rem,10.5vw,13rem)] leading-none font-black tracking-tighter whitespace-nowrap text-transparent uppercase select-none"
-              style={{ WebkitTextStroke: `1px ${textStrokeColor}` }}
+              className="transform-gpu pb-6 leading-none font-black tracking-tighter whitespace-nowrap text-transparent uppercase select-none"
+              style={{ WebkitTextStroke: `1px ${textStrokeColor}`, ...fitStyle }}
             >
               {brandText}
             </div>
 
             {/* Masked Spotlight Text */}
             <div
-              className={`pointer-events-none absolute top-0 right-0 bottom-0 left-0 flex transform-gpu items-start justify-center pb-6 text-[clamp(2.5rem,10.5vw,13rem)] leading-none font-black tracking-tighter whitespace-nowrap text-transparent uppercase select-none`}
+              className="pointer-events-none absolute top-0 right-0 bottom-0 left-0 flex transform-gpu items-start justify-center pb-6 leading-none font-black tracking-tighter whitespace-nowrap text-transparent uppercase select-none"
               style={{
+                ...fitStyle,
                 backgroundImage: isProudMoments
                   ? champagneGoldGradient
                   : premiumBlueGradient,
@@ -208,18 +305,18 @@ export function Footer() {
               <div className="mt-4">
                 <MagneticButton
                   onClick={() => navigateTo(buttonLink)}
-                  className={`group relative flex cursor-pointer items-center gap-3 overflow-hidden border px-6 py-3 text-xs font-bold tracking-widest uppercase transition-colors duration-300 hover:text-white dark:hover:text-black ${buttonBorderText}`}
+                  className={`group relative isolate flex transform-gpu cursor-pointer items-center justify-center gap-2.5 overflow-hidden border px-4 py-2 will-change-transform transition-colors duration-300 sm:gap-4 sm:px-6 sm:py-3 ${buttonBorderText}`}
                   strength={0.25}
                 >
-                  {/* Animated Background Fill */}
-                  <div
-                    className={`absolute inset-0 translate-y-[100%] transform-gpu transition-transform duration-300 ease-in-out group-hover:translate-y-0 ${buttonBgFill}`}
-                  />
-
                   {/* Button Content */}
-                  <span className="relative z-10 flex items-center gap-2">
-                    {buttonText}
-                    <ArrowRight className="h-4 w-4 transform transform-gpu transition-transform duration-300 group-hover:translate-x-1" />
+                  <span className="pointer-events-none relative z-10 flex items-center gap-2.5 sm:gap-4">
+                    <img
+                      src="/Proud Moments-Logo 2 (2).png"
+                      alt="Proud Moments Logo"
+                      className="h-6 w-auto scale-110 transform-gpu object-contain transition-transform duration-300 ease-out sm:h-7 sm:scale-100 sm:group-hover:scale-110"
+                    />
+
+                    <ArrowRight className="h-4 w-4 transform-gpu transition-transform duration-300 ease-out sm:h-5 sm:w-5 sm:group-hover:translate-x-2" />
                   </span>
                 </MagneticButton>
               </div>
@@ -291,20 +388,6 @@ export function Footer() {
             <p>
               © {new Date().getFullYear()} {brandText} Inc.
             </p>
-            <div className="flex gap-6">
-              <a
-                href="#privacy"
-                className="transition-colors hover:text-black dark:hover:text-white"
-              >
-                Privacy
-              </a>
-              <a
-                href="#terms"
-                className="transition-colors hover:text-black dark:hover:text-white"
-              >
-                Terms
-              </a>
-            </div>
           </div>
 
           {/* Credits, Back to Top, Socials */}
@@ -315,18 +398,20 @@ export function Footer() {
                 href="https://www.hitcs.in/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-colors hover:text-black dark:hover:text-white"
+                className="transition-colors hover:text-zinc-800 dark:hover:text-zinc-300"
               >
                 HITCS Pvt. Ltd
               </a>
             </p>
 
-            <button
-              onClick={scrollToTop}
-              className={`flex items-center gap-2 cursor-pointer rounded-full px-5 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors ${backToTopClasses}`}
-            >
-              Back to Top <ArrowUp className="h-3 w-3" />
-            </button>
+           <button
+  onClick={scrollToTop}
+  className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-all duration-200
+    hover:bg-black/10 dark:hover:bg-white/10
+    ${backToTopClasses}`}
+>
+  Back to Top <ArrowUp className="h-3 w-3" />
+</button>
 
             <div className="flex items-center gap-3">
               {/* Instagram */}

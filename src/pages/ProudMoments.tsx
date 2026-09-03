@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import {
   motion,
   AnimatePresence,
@@ -8,7 +8,6 @@ import {
   useSpring,
   useMotionTemplate,
   useReducedMotion,
-  useMotionValueEvent,
 } from "framer-motion"
 import type { MotionValue, Variants } from "framer-motion"
 import {
@@ -2077,209 +2076,336 @@ const WhyChooseUs: React.FC<WhyChooseUsProps> = ({
   )
 }
 
-export type VisualComponentType = React.ComponentType<{ accent: string }>
 
-interface MobileCardProps {
-  chapter: Chapter
-  index: number
-  total: number
-  stageProgress: MotionValue<number>
-  visual: VisualComponentType
-  reducedMotion: boolean
-}
-
-const SEGMENT_VH = 68
-const HOLD_FRACTION = 0.65
-
-function useLenisMobileOnly(): void {
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    let lenis: any
+ 
+/* ============================================================
+   CONSTANTS
+   ============================================================ */
+const EASE_ARR: [number, number, number, number] = [0.16, 1, 0.3, 1]
+ 
+// Card footprint. ~12% larger than the previous 64vh/560px pass, and
+// anchored near the bottom of the viewport instead of dead-center.
+/* ============================================================
+   LENIS (mobile only, fully disabled when reduced motion is on)
+   ============================================================ */
+function useLenisMobileOnly(disabled: boolean): void {
+  React.useEffect(() => {
+    if (typeof window === "undefined" || disabled) return
+ 
+    let lenis: { raf: (t: number) => void; destroy?: () => void } | undefined
     let rafId = 0
     let destroyed = false
-
+ 
     const mq = window.matchMedia("(max-width: 767px)")
-
+ 
     const teardown = () => {
       if (rafId) cancelAnimationFrame(rafId)
       lenis?.destroy?.()
       lenis = undefined
     }
-
+ 
     const setup = async () => {
       if (!mq.matches || destroyed) return
       try {
         const mod = await import("lenis")
         const Lenis = mod.default
-
         lenis = new Lenis({
-          duration: 1.1,
+          duration: 1.2,
           easing: (t: number) => 1 - Math.pow(1 - t, 3),
           smoothWheel: true,
           touchMultiplier: 1.1,
         })
-
+ 
         const raf = (time: number) => {
-          lenis.raf(time)
+          lenis?.raf(time)
           rafId = requestAnimationFrame(raf)
         }
         rafId = requestAnimationFrame(raf)
       } catch {
-        // Fall back natively if module unavailable
+        // Module unavailable — fall back to native scroll.
       }
     }
-
+ 
     const handleChange = () => {
       teardown()
       setup()
     }
-
+ 
     setup()
     mq.addEventListener("change", handleChange)
-
+ 
     return () => {
       destroyed = true
       mq.removeEventListener("change", handleChange)
       teardown()
     }
-  }, [])
+  }, [disabled])
 }
+ 
+/* ============================================================
+   REF MERGING HELPER
+   ============================================================ */
+function mergeRefs<T>(
+  ...refs: Array<React.Ref<T> | undefined>
+): (node: T | null) => void {
+  return (node) => {
+    refs.forEach((ref) => {
+      if (!ref) return
+      if (typeof ref === "function") {
+        ref(node)
+      } else {
+        ;(ref as React.MutableRefObject<T | null>).current = node
+      }
+    })
+  }
+}
+ 
 
-const MobileCard: React.FC<MobileCardProps> = React.memo(
-  ({
-    chapter,
-    index,
-    total,
-    stageProgress,
-    visual: VisualComponent,
-    reducedMotion,
-  }) => {
-    const holdEnd = index + HOLD_FRACTION
-    const entryStart = index - (1 - HOLD_FRACTION)
+ 
+/* ============================================================
+   STACK CARD
+   ============================================================ */
+type VisualComponentType = React.ComponentType<{
+  accent: string
+}>
 
-    let opacityInputRange: number[]
-    let opacityRange: number[]
-    let motionInputRange: number[]
-    let yRange: string[]
-    let scaleRange: number[]
+interface StackCardProps {
+  chapter: Chapter
+  index: number
+  total: number
+  visual: VisualComponentType
+  reducedMotion: boolean
+  sharedProgress: MotionValue<number>
+  registerRef: (el: HTMLDivElement | null) => void
+}
+ 
+const CARD_MAX_HEIGHT_PX = 700 // was ~640; +12%
+const PEEK_OFFSET_PX = 7        // GPU translateY fan offset, replaces TOP_STAGGER_PX
+const EASE_CSS = "cubic-bezier(0.22, 1, 0.36, 1)" // premium "expo-out" feel
 
-    if (index === 0) {
-      motionInputRange = [0, holdEnd, index + 1]
-      opacityInputRange = motionInputRange
-      opacityRange = [1, 1, 0]
-      yRange = ["0px", "0px", "-24px"]
-      scaleRange = [1, 1, 0.985]
-    } else if (index === total - 1) {
-      motionInputRange = [entryStart, index, total]
-      opacityInputRange = motionInputRange
-      opacityRange = [1, 1, 1]
-      yRange = ["32px", "0px", "0px"]
-      scaleRange = [0.985, 1, 1]
-    } else {
-      motionInputRange = [entryStart, index, holdEnd, index + 1]
-      opacityInputRange = motionInputRange
-      opacityRange = [1, 1, 1, 0]
-      yRange = ["32px", "0px", "0px", "-24px"]
-      scaleRange = [0.985, 1, 1, 0.985]
-    }
+const StackCard: React.FC<StackCardProps> = React.memo(
+  ({ chapter, index, total, visual: VisualComponent, reducedMotion, sharedProgress, registerRef }) => {
+    const localRef = useRef<HTMLDivElement>(null)
+    const isLast = index === total - 1
+    const isEven = index % 2 === 0
+    const accent = chapter.accent
 
-    const opacity = useTransform(stageProgress, opacityInputRange, opacityRange)
-    const y = useTransform(stageProgress, motionInputRange, yRange)
-    const scale = useTransform(stageProgress, motionInputRange, scaleRange)
-    const svgY = useTransform(stageProgress, [index, index + 1], ["6%", "-6%"])
+    // 1. Shared recede-scale — unchanged logic, still the core "stack" illusion
+    const targetScale = Math.max(0.86, 1 - (total - 1 - index) * 0.036)
+    const start = total > 1 ? index / total : 0
+    const scale = useTransform(sharedProgress, [start, 1], [1, targetScale])
+
+    // 2. Local entrance progress
+    const { scrollYProgress: localProgress } = useScroll({
+      target: localRef,
+      offset: ["start end", "start center"],
+    })
+
+    const visualScale = useTransform(localProgress, [0, 1], [1.18, 1])
+    const visualRotate = useTransform(localProgress, [0, 1], [-4, 0])
+    const tiltX = useTransform(localProgress, [0, 1], [5, 0])
+    const entranceY = useTransform(localProgress, [0, 1], [22, 0])
+
+    const appliedScale = reducedMotion || isLast ? 1 : scale
+    const appliedVisualScale = reducedMotion ? 1 : visualScale
+    const appliedVisualRotate = reducedMotion ? 0 : visualRotate
+    const appliedTiltX = reducedMotion ? 0 : tiltX
+
+    // FIX: fan/cascade effect is now a bounded GPU transform, not a layout `top`.
+    // Max total displacement across 6 cards is ~35–42px — nowhere near enough
+    // to push a card's bottom edge outside its own h-screen sticky box.
+    const peekY = reducedMotion ? 0 : -(total - 1 - index) * PEEK_OFFSET_PX
+
+    // 3. Refined folder/book silhouette — smooth bezier notch instead of a
+    // stair-step cutout, so the tab reads as an intentional fold, not an SVG clip.
+    const leftTabPath =
+      "M 0,104 L 0,28 A 28,28 0 0 1 28,0 L 392,0 " +
+      "C 424,0 438,10 448,32 C 458,54 474,64 500,64 " +
+      "L 572,64 A 28,28 0 0 1 600,92 " +
+      "L 600,772 A 28,28 0 0 1 572,800 " +
+      "L 28,800 A 28,28 0 0 1 0,772 Z"
+
+    const rightTabPath =
+      "M 600,104 L 600,28 A 28,28 0 0 0 572,0 L 208,0 " +
+      "C 176,0 162,10 152,32 C 142,54 126,64 100,64 " +
+      "L 28,64 A 28,28 0 0 0 0,92 " +
+      "L 0,772 A 28,28 0 0 0 28,800 " +
+      "L 572,800 A 28,28 0 0 0 600,772 Z"
+
+    const activePath = isEven ? leftTabPath : rightTabPath
 
     return (
-      <motion.div
-        className="absolute inset-0 isolate h-full w-full shadow-[0_24px_60px_-15px_rgba(28,25,23,0.05)] dark:shadow-none"
-        style={{
-          opacity: reducedMotion ? 1 : opacity,
-          y: reducedMotion ? 0 : y,
-          scale: reducedMotion ? 1 : scale,
-          zIndex: total - index,
-          willChange: "transform, opacity",
-          WebkitFontSmoothing: "antialiased",
-          MozOsxFontSmoothing: "grayscale",
-          transform: "translate3d(0, 0, 0)",
-          WebkitTransformStyle: "preserve-3d",
-          transformStyle: "preserve-3d",
-          backfaceVisibility: "hidden",
-          WebkitBackfaceVisibility: "hidden",
-          contain: "layout paint size",
-          transition: reducedMotion ? `opacity 0.3s ${EASE}` : undefined,
-        }}
+      <div
+        ref={mergeRefs(localRef, registerRef)}
+        // FIX: items-center replaces items-end — symmetric vertical breathing
+        // room means the card's box never depends on bottom safe-area math
+        // to stay fully on-screen.
+        className="sticky top-0 flex h-screen w-full items-center justify-center px-4 sm:px-6"
+        style={{ zIndex: index + 1, perspective: "1600px" }}
       >
-        {/* 1. OPAQUE BASE & CLIPPING MASK (Fixes square glitch and bleed-through) */}
-        <div className="relative isolate h-full w-full overflow-hidden rounded-[1.75rem] bg-stone-50 dark:bg-[#1C1C1C]">
-          {/* 2. SVG BACKGROUND LAYER */}
+        <motion.div
+          className="relative mx-auto w-[96vw] max-w-[560px] sm:w-[600px] xl:w-[660px]"
+          style={{
+            height: `min(75vh, ${CARD_MAX_HEIGHT_PX}px)`,
+            minHeight: "520px",
+            scale: appliedScale,
+            y: useTransform(entranceY, (v) => v + peekY), // combine entrance + fan, both GPU
+            rotateX: appliedTiltX,
+            transformPerspective: 1600,
+            transformStyle: "preserve-3d",
+            willChange: "transform",
+            transform: "translateZ(0)", // force its own compositor layer
+            // Realistic layered elevation — replaces the flat single drop-shadow
+            filter:
+              "drop-shadow(0px 1px 2px rgba(0,0,0,0.06)) " +
+              "drop-shadow(0px 8px 16px rgba(0,0,0,0.06)) " +
+              "drop-shadow(0px 24px 48px rgba(0,0,0,0.08)) " +
+              "dark:drop-shadow(0px 2px 4px rgba(0,0,0,0.4)) " +
+              "dark:drop-shadow(0px 16px 32px rgba(0,0,0,0.35)) " +
+              "dark:drop-shadow(0px 32px 64px rgba(0,0,0,0.3))",
+            transition: reducedMotion ? `transform 0.4s ${EASE_CSS}` : undefined,
+          }}
+        >
+          {/* AMBIENT LIGHT — soft directional wash instead of a radial "glow" */}
           <div
-            className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center opacity-[0.32] dark:opacity-[0.30]"
+            aria-hidden
+            className="pointer-events-none absolute -inset-px rounded-[2rem] opacity-60 dark:opacity-40"
             style={{
-              color: chapter.accent,
-              filter: "contrast(1.05) saturate(0.9)",
+              background: `linear-gradient(155deg, ${accent}14, transparent 40%)`,
             }}
+          />
+
+          {/* PRESS LAYER — hover/lift is desktop-only via @media(hover:hover) */}
+          <motion.div
+            className="group relative h-full w-full [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:scale-[1.012] transition-transform duration-500"
+            style={{ transitionTimingFunction: EASE_CSS, willChange: "transform" }}
+            initial={{ scale: 1 }}
+            whileTap={{ scale: 0.985 }}
+            transition={{ type: "spring", stiffness: 380, damping: 28 }}
           >
-            <motion.div
-              className="flex h-[70%] w-[70%] items-center justify-center"
-              style={{ y: reducedMotion ? "0%" : svgY }}
+            {/* SVG MASKING & BACKGROUND CANVAS */}
+            <div className="absolute inset-0 z-0 h-full w-full overflow-hidden rounded-[1.75rem]">
+              <svg viewBox="0 0 600 800" preserveAspectRatio="none" className="h-full w-full">
+                <defs>
+                  <clipPath id={`folder-clip-${index}`}>
+                    <path d={activePath} />
+                  </clipPath>
+                  <linearGradient id={`spine-grad-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor={accent} />
+                    <stop offset="100%" stopColor={accent} stopOpacity="0.45" />
+                  </linearGradient>
+                  <linearGradient id={`wash-grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={accent} stopOpacity="0.05" />
+                    <stop offset="45%" stopColor={accent} stopOpacity="0" />
+                  </linearGradient>
+                  {/* Soft top-down ambient light instead of a radial "sheen" glow */}
+                  <linearGradient id="ambient-light" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.16" />
+                    <stop offset="18%" stopColor="#ffffff" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+
+                <g clipPath={`url(#folder-clip-${index})`}>
+                  <rect width="100%" height="100%" className="fill-stone-50 dark:fill-[#141414]" />
+                  <rect x="0" y="0" width="5" height="100%" fill={`url(#spine-grad-${index})`} />
+                  <rect width="100%" height="100%" fill="url(#ambient-light)" />
+                  <rect width="100%" height="100%" fill={`url(#wash-grad-${index})`} className="opacity-[0.5] dark:opacity-[0.3]" />
+                </g>
+
+                {/* Premium hairline border — inset highlight + outer definition */}
+                <path
+                  d={activePath}
+                  fill="none"
+                  className="stroke-black/[0.07] dark:stroke-white/[0.09]"
+                  strokeWidth="1.5"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+            </div>
+
+            {/* HERO VISUAL LAYER — 25–35% stronger presence */}
+            <div
+              className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center opacity-95 dark:opacity-90"
+              style={{ color: accent, filter: "contrast(1.04) saturate(1.05)" }}
             >
-              <VisualComponent accent={chapter.accent} />
-            </motion.div>
-          </div>
-
-          {/* 3. CONTENT OVERLAY (Translucent bg + blur, letting parent clip the corners) */}
-          <div className="relative z-10 flex h-full flex-col justify-between p-7 select-none sm:p-9">
-            <div className="my-auto space-y-4 rounded-2xl bg-stone-50/55 px-4 py-4 backdrop-blur-[2px] dark:bg-[#1C1C1C]/55">
-              {chapter.intro && (
-                <p className="text-[11px] font-semibold tracking-[0.15em] text-neutral-400 uppercase dark:text-neutral-500">
-                  {chapter.intro}
-                </p>
-              )}
-
-              <h2 className="text-3xl leading-[1.12] font-medium tracking-tight text-balance text-neutral-900 sm:text-4xl dark:text-zinc-50">
-                {chapter.title}
-              </h2>
-
-              <p className="pt-2 text-sm leading-relaxed font-light text-balance text-zinc-950 sm:text-base dark:text-neutral-200">
-                {chapter.desc}
-              </p>
+              <motion.div
+                className="flex h-[84%] w-[84%] items-center justify-center"
+                style={{
+                  scale: appliedVisualScale,
+                  rotate: appliedVisualRotate,
+                  filter: `drop-shadow(0 18px 30px ${accent}30)`,
+                  willChange: "transform",
+                }}
+              >
+                <VisualComponent accent={accent} />
+              </motion.div>
             </div>
 
-            <div className="mt-6 rounded-2xl border-t border-neutral-200/60 bg-stone-50/55 px-4 py-4 pt-6 backdrop-blur-[2px] dark:border-white/[0.06] dark:bg-[#1C1C1C]/55">
-              {chapter.points?.slice(0, 3).map((point, idx) => (
-                <div key={idx} className="flex items-start gap-3.5">
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={chapter.accent}
-                    strokeWidth="2.5"
-                    className="mt-[4px] flex-shrink-0 opacity-80"
+            {/* Desktop-only highlight sweep on hover — replaces the old glow micro-interaction */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-[5] rounded-[1.75rem] opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-700"
+              style={{
+                background:
+                  "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.08) 48%, transparent 62%)",
+              }}
+            />
+
+            {/* CONTENT OVERLAY */}
+            <div className="relative z-10 flex h-full flex-col justify-between p-5 pl-6 pt-[5.5rem] pb-8 antialiased select-none sm:p-9 sm:pl-10 sm:pt-[7.5rem] sm:pb-12 gap-y-6 [text-rendering:optimizeLegibility] [-webkit-font-smoothing:antialiased]">
+               <div className="my-auto space-y-3 rounded-2xl bg-white/80 border border-neutral-100 px-5 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] dark:border-neutral-800/50 dark:bg-neutral-900/65 sm:space-y-4">
+                {chapter.intro && (
+                  <p
+                    className="text-[11px] font-bold tracking-[0.18em] uppercase"
+                    style={{ color: accent }}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span className="text-[13px] font-medium tracking-wide text-neutral-600 dark:text-neutral-300">
-                    {point}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+                    {chapter.intro}
+                  </p>
+                )}
 
-          {/* 4. CRISP BORDER OVERLAY (Drawn over everything so it never aliases) */}
-          <div className="pointer-events-none absolute inset-0 z-20 rounded-[1.75rem] border border-neutral-200/60 shadow-inner dark:border-white/[0.1]" />
-        </div>
-      </motion.div>
+                <h2 className="text-2xl leading-[1.15] font-semibold tracking-tight text-balance text-neutral-900 sm:text-[1.8rem] dark:text-white">
+                  {chapter.title}
+                </h2>
+
+                <p className="pt-1 text-[15px] leading-relaxed text-balance text-zinc-950 sm:pt-2 sm:text-base dark:text-neutral-100">
+                  {chapter.desc}
+                </p>
+              </div>
+
+               <div className="space-y-5">
+                {chapter.points && chapter.points.length > 0 && (
+                  <div className="rounded-2xl border border-neutral-200/60 bg-white/30 px-5 py-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] dark:border-neutral-800/80 dark:bg-neutral-900/45 sm:py-5">
+                    {chapter.points.slice(0, 3).map((point, idx) => (
+                      <div key={idx} className="mb-3 flex items-start gap-3.5 last:mb-0">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke={accent}
+                          strokeWidth="2.5"
+                          className="mt-[3px] flex-shrink-0"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-[13.5px] font-medium leading-relaxed tracking-[0.01em] text-neutral-800 dark:text-neutral-200">
+                          {point}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                </div>
+              </div>
+          </motion.div>
+        </motion.div>
+      </div>
     )
   }
 )
-MobileCard.displayName = "MobileCard"
 
+StackCard.displayName = "StackCard"
+ 
 /* ============================================================
    MAIN STORYTELLING CONTAINER COMPONENT
    ============================================================ */
@@ -2289,83 +2415,59 @@ const StorytellingSection: React.FC<StorytellingSectionProps> = ({
   activeIndex,
   sectionRefs,
 }) => {
-  const mobileContainerRef = useRef<HTMLDivElement>(null)
   const totalChapters = CHAPTERS.length
   const reducedMotion = useReducedMotion() ?? false
-
-  useLenisMobileOnly()
-
-  const { scrollYProgress } = useScroll({
-    target: mobileContainerRef,
+  const mobileStackRef = useRef<HTMLDivElement>(null)
+ 
+  useLenisMobileOnly(reducedMotion)
+ 
+  // One shared progress value across the WHOLE mobile stack. Each card
+  // slices its own range of it for the recede-scale. Consecutive
+  // h-screen sticky sections naturally hold + hand off — no runway
+  // divs, no risk of empty gaps.
+  const { scrollYProgress: sharedProgress } = useScroll({
+    target: mobileStackRef,
     offset: ["start start", "end end"],
   })
-
-  const stageProgress = useTransform(scrollYProgress, (v) => v * totalChapters)
-  const [activeCardIndex, setActiveCardIndex] = useState(0)
-
-  useMotionValueEvent(stageProgress, "change", (latest) => {
-    const idx = Math.min(totalChapters - 1, Math.max(0, Math.floor(latest)))
-    setActiveCardIndex((prev) => (prev === idx ? prev : idx))
-  })
-
-  const mountedIndices = useMemo(() => {
-    const set = new Set<number>()
-    for (let i = activeCardIndex - 1; i <= activeCardIndex + 1; i++) {
-      if (i >= 0 && i < totalChapters) set.add(i)
-    }
-    return set
-  }, [activeCardIndex, totalChapters])
-
+ 
   return (
     <div className="relative w-full font-sans text-neutral-900 dark:text-zinc-50">
-      {/* MOBILE SCROLLER LAYER */}
-      <div
-        ref={mobileContainerRef}
-        className="relative block w-full md:hidden"
-        style={{ height: `${totalChapters * SEGMENT_VH}vh` }}
-      >
-        <div className="pointer-events-none absolute top-0 left-0 z-0 flex h-full w-full flex-col">
-          {CHAPTERS.map((_, i) => (
-            <div
-              key={i}
-              ref={(el) => {
-                sectionRefs.current[i] = el
-              }}
-              className="w-full flex-1"
-            />
-          ))}
-        </div>
-
-        <div className="sticky top-0 left-0 isolate flex h-screen w-full flex-col justify-center overflow-hidden bg-stone-100 px-4 dark:bg-black">
-          <motion.div
-            className="absolute inset-0 z-0 opacity-40 transition-colors duration-700 ease-in-out dark:opacity-20"
-            style={{
-              background: `radial-gradient(circle at 50% 15%, ${
-                CHAPTERS[activeIndex]?.accent || "#fff"
-              }20, transparent 65%)`,
+      {/* MOBILE STACK LAYER */}
+      <div ref={mobileStackRef} className="relative mb-30 block w-full md:hidden">
+        <div
+          className="pointer-events-none fixed inset-0 -z-10 opacity-40 transition-colors duration-700 ease-in-out dark:opacity-25"
+          style={{
+            background: `radial-gradient(circle at 50% 12%, ${
+              CHAPTERS[activeIndex]?.accent || "#fff"
+            }26, transparent 62%)`,
+          }}
+        />
+        <div
+          className="pointer-events-none fixed inset-0 -z-10 opacity-30 dark:opacity-20"
+          style={{
+            background: `radial-gradient(circle at 85% 90%, ${
+              CHAPTERS[activeIndex]?.accent || "#fff"
+            }18, transparent 55%)`,
+          }}
+        />
+ 
+        {CHAPTERS.map((chapter, i) => (
+          <StackCard
+            key={chapter.id}
+            chapter={chapter}
+            index={i}
+            total={totalChapters}
+            visual={VISUALS[i]}
+            reducedMotion={reducedMotion}
+            sharedProgress={sharedProgress}
+            registerRef={(el) => {
+              sectionRefs.current[i] = el
             }}
           />
-
-          <div className="relative isolate z-10 mx-auto flex h-[66vh] w-full max-w-[414px] items-center justify-center px-6">
-            {CHAPTERS.map((chapter, i) => {
-              if (!mountedIndices.has(i)) return null
-              return (
-                <MobileCard
-                  key={chapter.id}
-                  chapter={chapter}
-                  index={i}
-                  total={totalChapters}
-                  stageProgress={stageProgress}
-                  visual={VISUALS[i]}
-                  reducedMotion={reducedMotion}
-                />
-              )
-            })}
-          </div>
-        </div>
+        ))}
       </div>
-
-      {/* DESKTOP VIEW SCROLLER LAYER */}
+ 
+      {/* DESKTOP VIEW SCROLLER LAYER — unchanged */}
       <div className="relative hidden w-full md:flex">
         <div className="sticky top-0 z-20 flex h-screen w-1/2 items-center justify-center border-r border-stone-200 bg-stone-50 dark:border-zinc-900 dark:bg-zinc-950">
           <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
@@ -2378,7 +2480,7 @@ const StorytellingSection: React.FC<StorytellingSectionProps> = ({
                     opacity: activeIndex === index ? 1 : 0,
                     scale: activeIndex === index ? 1 : 0.92,
                   }}
-                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.6, ease: EASE_ARR }}
                   className="pointer-events-none absolute inset-0 flex items-center justify-center"
                 >
                   <VisualComponent accent={chapter.accent} />
@@ -2387,7 +2489,7 @@ const StorytellingSection: React.FC<StorytellingSectionProps> = ({
             })}
           </div>
         </div>
-
+ 
         <div className="relative z-10 flex w-1/2 flex-col bg-stone-50 dark:bg-zinc-950">
           {CHAPTERS.map((chapter, index) => (
             <div
@@ -2403,7 +2505,7 @@ const StorytellingSection: React.FC<StorytellingSectionProps> = ({
               <p className="mb-8 text-lg leading-relaxed font-light text-neutral-500 dark:text-neutral-400">
                 {chapter.desc}
               </p>
-
+ 
               {chapter.points && (
                 <div className="grid grid-cols-1 gap-x-12 gap-y-4 border-t border-stone-200 pt-8 lg:grid-cols-2 dark:border-zinc-800/50">
                   {chapter.points.map((point, i) => (
@@ -2420,11 +2522,7 @@ const StorytellingSection: React.FC<StorytellingSectionProps> = ({
                         strokeWidth="2.5"
                         className="flex-shrink-0"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                       <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
                         {point}
@@ -2440,6 +2538,8 @@ const StorytellingSection: React.FC<StorytellingSectionProps> = ({
     </div>
   )
 }
+ 
+
 
 export default function ProudMoments() {
   const [activeIndex, setActiveIndex] = useState(0)
